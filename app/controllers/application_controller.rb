@@ -29,7 +29,6 @@ class ApplicationController < ActionController::Base
     :set_locale,
     :redirect_locale_param,
     :fetch_community_admin_status,
-    :warn_about_missing_payment_info,
     :set_homepage_path,
     :maintenance_warning,
     :cannot_access_if_banned,
@@ -38,6 +37,8 @@ class ApplicationController < ActionController::Base
     :ensure_user_belongs_to_community,
     :set_display_expiration_notice,
     :setup_intercom_user
+
+  after_action :warn_about_missing_payment_info
 
   # This updates translation files from WTI on every page load. Only useful in translation test servers.
   before_action :fetch_translations if APP_CONFIG.update_translations_on_every_page_load == "true"
@@ -351,7 +352,7 @@ class ApplicationController < ActionController::Base
   # Before filter for payments, shows notification if user is not ready for payments
   def warn_about_missing_payment_info
     if @current_user
-      has_paid_listings = PaypalHelper.open_listings_with_payment_process?(@current_community.id, @current_user.id)
+      has_paid_listings = PaymentHelper.open_listings_with_payment_process?(@current_community.id, @current_user.id)
       paypal_community  = PaypalHelper.community_ready_for_payments?(@current_community.id)
       stripe_community  = StripeHelper.community_ready_for_payments?(@current_community.id)
       paypal_ready      = PaypalHelper.account_prepared_for_user?(@current_user.id, @current_community.id)
@@ -365,10 +366,10 @@ class ApplicationController < ActionController::Base
         accept_payments << :stripe
       end
 
-      payment_settings_link = view_context.link_to(t("paypal_accounts.from_your_payment_settings_link_text"),
-        person_payment_settings_path(@current_user), target: "_blank")
-
       if has_paid_listings && accept_payments.blank?
+        payment_settings_link = view_context.link_to(t("paypal_accounts.from_your_payment_settings_link_text"),
+          person_payment_settings_path(@current_user), target: "_blank")
+
         flash.now[:warning] = t("stripe_accounts.missing_payment", settings_link: payment_settings_link).html_safe
       end
     end
