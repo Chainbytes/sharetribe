@@ -40,6 +40,8 @@ class ApplicationController < ActionController::Base
 
   after_action :warn_about_missing_payment_info
 
+  after_action :warn_about_missing_payment_info
+
   # This updates translation files from WTI on every page load. Only useful in translation test servers.
   before_action :fetch_translations if APP_CONFIG.update_translations_on_every_page_load == "true"
 
